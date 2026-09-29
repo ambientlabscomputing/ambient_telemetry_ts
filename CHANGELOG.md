@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+- Docs only: Python now has `sanitize_url`, so the README no longer calls it TypeScript-only.
+
 ## 0.3.1
 - Docs only: config reference, identity/session guide, gotchas, release steps; install line pinned to the current tag.
 

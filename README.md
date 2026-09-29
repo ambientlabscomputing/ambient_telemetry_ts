@@ -34,7 +34,7 @@ GlitchTip
 Internal, GitHub-only. It is not published to npm. Add it as a git dependency:
 
 ```bash
-npm install github:ambientlabscomputing/ambient_telemetry_ts#v0.3.1
+npm install github:ambientlabscomputing/ambient_telemetry_ts#v0.3.2
 ```
 
 `prepare` builds `dist/` on install, so pin a tag or commit. The Sentry SDK for your platform (`@sentry/browser`, `@sentry/react-native` or `@sentry/node`) is a peer dependency you install in the app.
@@ -118,6 +118,6 @@ Consumers pin the tag (`#vX.Y.Z`) and `prepare` builds `dist/` on install.
 | `sessionId()` | - | per-tab random id, also added to event data (`session_id`) and error tags; send it to your API as `X-Ambient-Session` |
 | `flush(timeoutMs?)` | both | resolves `true` when drained |
 
-The Python port implements the same calls (`capture_error` instead of `captureError`), plus `bind()` for per-request identity. `sanitizeUrl` is TypeScript-only for now.
+The Python port implements the same calls (`capture_error` instead of `captureError`), plus `bind()` for per-request identity. `sanitizeUrl` exists in both (`sanitize_url` in Python).
 
 Rules: never throw into the host app; calls before `init` are buffered (max 50) and replayed; `enabled: false` is a full no-op; sensitive keys (`password`, `token`, ...) are redacted; non-browser runtimes send a browser-shaped `User-Agent` (Umami answers `{"beep":"boop"}` with HTTP 200 and drops anything that looks like a bot, including UAs containing `node` or `server`).

@@ -1,6 +1,6 @@
 {
   "name": "ambient-telemetry",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Ambient Labs telemetry: Umami events + GlitchTip (Sentry) errors",
   "license": "UNLICENSED",
   "private": true,
