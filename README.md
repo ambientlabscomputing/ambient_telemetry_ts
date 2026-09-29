@@ -28,3 +28,43 @@ Sentry SDK
    ↓
 GlitchTip
 ```
+
+## Install
+
+Internal, GitHub-only. It is not published to npm. Add it as a git dependency:
+
+```bash
+npm install github:ambientlabscomputing/ambient_telemetry_ts#v0.1.0
+```
+
+`prepare` builds `dist/` on install, so pin a tag or commit. The Sentry SDK for your platform (`@sentry/browser`, `@sentry/react-native` or `@sentry/node`) is a peer dependency you install in the app.
+
+## Usage
+
+```ts
+import { init, track, page, captureError, identify } from "ambient-telemetry/web"; // or /react-native, /node
+
+init({
+  app: "ambient-web",
+  environment: "production",
+  release: "1.4.0",
+  glitchtip: { dsn: "https://<key>@glitchtip.example.com/1" },
+  umami: { host: "https://umami.example.com", websiteId: "<website-uuid>" },
+});
+
+track("checkout_started", { plan: "pro" });
+captureError(new Error("payment failed"), { tags: { area: "billing" } });
+```
+
+## API contract (for ports to other languages)
+
+| Call | Backend | Notes |
+|------|---------|-------|
+| `init(config)` | both | `app` + `environment` required; either backend optional |
+| `track(name, data?)` | Umami | `POST {host}/api/send`, `type: "event"` |
+| `page(url?, title?)` | Umami | pageview; RN passes a screen name as `url` |
+| `captureError(err, ctx?)` | GlitchTip | normalizes non-Error values; tags every event with `app` |
+| `identify(id, traits?)` | both | only the id goes to GlitchTip |
+| `flush(timeoutMs?)` | both | resolves `true` when drained |
+
+Rules: never throw into the host app; calls before `init` are buffered (max 50) and replayed; `enabled: false` is a full no-op; sensitive keys (`password`, `token`, ...) are redacted; non-browser runtimes send an explicit `User-Agent` so Umami doesn't drop them as bots.

@@ -1,0 +1,66 @@
+{
+  "name": "ambient-telemetry",
+  "version": "0.1.0",
+  "description": "Ambient Labs telemetry: Umami events + GlitchTip (Sentry) errors",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "import": "./dist/web.js",
+      "require": "./dist/web.cjs"
+    },
+    "./react-native": {
+      "types": "./dist/react-native.d.ts",
+      "import": "./dist/react-native.js",
+      "require": "./dist/react-native.cjs"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "require": "./dist/node.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepare": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src test"
+  },
+  "peerDependencies": {
+    "@sentry/browser": ">=8",
+    "@sentry/node": ">=8",
+    "@sentry/react-native": ">=6",
+    "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "@sentry/browser": {
+      "optional": true
+    },
+    "@sentry/node": {
+      "optional": true
+    },
+    "@sentry/react-native": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@sentry/browser": "^8.0.0",
+    "@sentry/node": "^8.0.0",
+    "@sentry/react-native": "^6.22.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
