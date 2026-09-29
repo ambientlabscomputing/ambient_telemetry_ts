@@ -21,6 +21,14 @@ export interface TelemetryConfig {
   beforeTrack?: (name: string, data?: Data) => { name: string; data?: Data } | null;
   autoCaptureUnhandled?: boolean;
   debug?: boolean;
+  /**
+   * Rewrites every page URL before it leaves the app: the `url` sent to Umami (pageviews and
+   * events) and the URLs Sentry attaches to errors (`request.url`, the Referer header,
+   * navigation/fetch breadcrumbs, and the query string). Use it to drop query strings that
+   * carry one-time secrets and to collapse ids in paths. Receives a path (`/a?b=1`) or an
+   * absolute URL; return the same shape. If it throws, the URL is replaced by `/`.
+   */
+  sanitizeUrl?: (url: string) => string;
 }
 
 /** Page/device context Umami needs; supplied per platform. */
@@ -45,6 +53,7 @@ export interface SentryAdapter {
     tracesSampleRate: number;
     autoCaptureUnhandled: boolean;
     app: string;
+    sanitizeUrl?: (url: string) => string;
   }): void;
   captureException(err: Error, ctx: ErrorContext): void;
   setUser(user: { id: string } | null): void;

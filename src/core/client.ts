@@ -66,11 +66,13 @@ export function createTelemetry(platform: Platform): Telemetry {
               tracesSampleRate: config.glitchtip.tracesSampleRate ?? 0,
               autoCaptureUnhandled: config.autoCaptureUnhandled ?? true,
               app: config.app,
+              sanitizeUrl: config.sanitizeUrl,
             });
           }
           if (config.umami) {
             umami = new UmamiTransport(config.umami, platform.context, platform.fetch ?? fetch, {
               debug: config.debug,
+              sanitizeUrl: config.sanitizeUrl,
             });
           }
         } catch (e) {

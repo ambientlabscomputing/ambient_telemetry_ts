@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/browser";
 import { createTelemetry } from "./core/client.js";
 import type { SentryAdapter } from "./core/types.js";
+import { scrubBreadcrumb, scrubEvent } from "./core/urls.js";
 
 const SESSION_KEY = "ambient.telemetry.sid";
 let memorySid: string | undefined;
@@ -27,6 +28,8 @@ const sentry: SentryAdapter = {
       sampleRate: o.sampleRate,
       tracesSampleRate: o.tracesSampleRate,
       sendDefaultPii: false,
+      beforeSend: (event) => scrubEvent(event, o.sanitizeUrl),
+      beforeBreadcrumb: (crumb) => scrubBreadcrumb(crumb, o.sanitizeUrl),
       defaultIntegrations: o.autoCaptureUnhandled ? undefined : false,
     });
     Sentry.setTag("app", o.app);

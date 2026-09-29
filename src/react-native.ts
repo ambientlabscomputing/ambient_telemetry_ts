@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/react-native";
 import { Dimensions, Platform } from "react-native";
 import { createTelemetry } from "./core/client.js";
 import type { SentryAdapter } from "./core/types.js";
+import { scrubBreadcrumb, scrubEvent } from "./core/urls.js";
 
 const sentry: SentryAdapter = {
   init(o) {
@@ -12,6 +13,8 @@ const sentry: SentryAdapter = {
       sampleRate: o.sampleRate,
       tracesSampleRate: o.tracesSampleRate,
       sendDefaultPii: false,
+      beforeSend: (event) => scrubEvent(event, o.sanitizeUrl),
+      beforeBreadcrumb: (crumb) => scrubBreadcrumb(crumb, o.sanitizeUrl),
       enableNative: true,
     });
     Sentry.setTag("app", o.app);

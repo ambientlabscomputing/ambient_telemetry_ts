@@ -56,6 +56,16 @@ track("checkout_started", { plan: "pro" });
 captureError(new Error("payment failed"), { tags: { area: "billing" } });
 ```
 
+## Keeping URLs safe (`sanitizeUrl`)
+
+Umami events carry the page URL, and Sentry attaches it to errors. If your URLs hold ids, names or one-time
+tokens, pass `sanitizeUrl` to `init`. It is applied to the Umami `url` (pageviews and events), to Sentry's
+`request.url`, Referer header, stored query string, and navigation/fetch breadcrumbs. If it throws, the URL becomes `/`.
+
+```ts
+init({ ..., sanitizeUrl: (url) => url.split("?")[0].replace(/\/projects\/[^/]+/, "/projects/:id") });
+```
+
 ## API contract (for ports to other languages)
 
 | Call | Backend | Notes |

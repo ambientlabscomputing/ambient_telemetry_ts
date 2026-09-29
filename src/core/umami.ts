@@ -1,4 +1,5 @@
 import type { Data, UmamiContext } from "./types.js";
+import { safeUrl } from "./urls.js";
 
 const MAX_QUEUE = 100;
 const MAX_ATTEMPTS = 4;
@@ -19,7 +20,12 @@ export class UmamiTransport {
     private cfg: { host: string; websiteId: string },
     private ctx: UmamiContext,
     private doFetch: typeof fetch,
-    private opts: { timeoutMs?: number; baseDelayMs?: number; debug?: boolean } = {},
+    private opts: {
+      timeoutMs?: number;
+      baseDelayMs?: number;
+      debug?: boolean;
+      sanitizeUrl?: (url: string) => string;
+    } = {},
   ) {}
 
   event(name: string | undefined, data: Data | undefined, url?: string): void {
@@ -56,7 +62,7 @@ export class UmamiTransport {
       hostname: c.hostname,
       language: c.language,
       screen: c.screen,
-      url: extra.url ?? c.currentUrl(),
+      url: safeUrl(this.opts.sanitizeUrl, String(extra.url ?? c.currentUrl())),
       title: extra.title ?? c.currentTitle?.(),
       referrer: c.referrer?.(),
       name: extra.name,

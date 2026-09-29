@@ -103,3 +103,36 @@ describe("telemetry client", () => {
     expect(f4).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("sanitizeUrl", () => {
+  const strip = (u: string) => u.split("?")[0]!.replace(/\/projects\/[^/]+/, "/projects/:id");
+
+  it("rewrites the url on events and pageviews, default and explicit", async () => {
+    const { t, calls } = setup();
+    t.init({ ...base, sanitizeUrl: strip });
+    t.track("a");
+    t.page("/projects/hq-renovation?code=SECRET", "T");
+    await t.flush();
+    const bodies = calls.map((c) => JSON.parse(c.init.body as string).payload.url);
+    expect(bodies).toEqual(["/p", "/projects/:id"]);
+  });
+
+  it("fails closed when the sanitizer throws", async () => {
+    const { t, calls } = setup();
+    t.init({
+      ...base,
+      sanitizeUrl: () => {
+        throw new Error("bug");
+      },
+    });
+    t.track("a");
+    await t.flush();
+    expect(JSON.parse(calls[0]!.init.body as string).payload.url).toBe("/");
+  });
+
+  it("hands the sanitizer to the Sentry adapter", () => {
+    const { t, sentry } = setup();
+    t.init({ ...base, sanitizeUrl: strip });
+    expect((sentry.init as ReturnType<typeof vi.fn>).mock.calls[0]![0].sanitizeUrl).toBe(strip);
+  });
+});
