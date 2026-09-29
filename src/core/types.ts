@@ -55,4 +55,7 @@ export interface Platform {
   sentry: SentryAdapter;
   context: UmamiContext;
   fetch?: typeof fetch;
+  /** Stable id for this app instance/tab. Attached to every event and error, and sent to the
+   * backend (see `sessionId()`), so client events and server errors can be joined. */
+  sessionId?: () => string | undefined;
 }

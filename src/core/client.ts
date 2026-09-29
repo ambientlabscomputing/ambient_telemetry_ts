@@ -10,6 +10,10 @@ export interface Telemetry {
   page(url?: string, title?: string): void;
   captureError(err: unknown, ctx?: ErrorContext): void;
   identify(userId: string, traits?: Data): void;
+  /** Sign-out: forget the identified user in both backends. */
+  reset(): void;
+  /** Per-tab id also attached to events/errors; send it to your API (e.g. `X-Ambient-Session`). */
+  sessionId(): string | undefined;
   flush(timeoutMs?: number): Promise<boolean>;
 }
 
@@ -82,7 +86,8 @@ export function createTelemetry(platform: Platform): Telemetry {
       call(() => {
         let ev: { name: string; data?: Data } | null = { name, data: data && scrub(data) };
         if (cfg?.beforeTrack) ev = cfg.beforeTrack(ev.name, ev.data);
-        if (ev) umami?.event(ev.name, ev.data);
+        const sid = platform.sessionId?.();
+        if (ev) umami?.event(ev.name, sid ? { session_id: sid, ...ev.data } : ev.data);
       });
     },
 
@@ -92,9 +97,14 @@ export function createTelemetry(platform: Platform): Telemetry {
 
     captureError(err, ctx = {}) {
       call(() => {
+        const sid = platform.sessionId?.();
         let out: { err: Error; ctx: ErrorContext } | null = {
           err: normalizeError(err),
-          ctx: { ...ctx, tags: { app: cfg!.app, ...ctx.tags }, extra: ctx.extra && scrub(ctx.extra) },
+          ctx: {
+            ...ctx,
+            tags: { app: cfg!.app, ...(sid ? { session_id: sid } : {}), ...ctx.tags },
+            extra: ctx.extra && scrub(ctx.extra),
+          },
         };
         if (cfg?.beforeSend) out = cfg.beforeSend(out.err, out.ctx);
         if (out && cfg?.glitchtip) platform.sentry.captureException(out.err, out.ctx);
@@ -108,9 +118,22 @@ export function createTelemetry(platform: Platform): Telemetry {
       });
     },
 
+    reset() {
+      call(() => {
+        platform.sentry.setUser(null);
+        umami?.reset();
+      });
+    },
+
+    sessionId: () => platform.sessionId?.(),
+
     async flush(timeoutMs = 2000) {
       try {
-        const r = await Promise.all([platform.sentry.flush(timeoutMs), umami?.flush(timeoutMs) ?? true]);
+        // Sentry.flush() reports false when no client exists (glitchtip not configured); that's not a failure.
+        const r = await Promise.all([
+          cfg?.glitchtip ? platform.sentry.flush(timeoutMs) : true,
+          umami?.flush(timeoutMs) ?? true,
+        ]);
         return r.every(Boolean);
       } catch {
         return false;

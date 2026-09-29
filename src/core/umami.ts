@@ -10,6 +10,7 @@ interface Job {
 
 export class UmamiTransport {
   private cacheToken?: string;
+  private distinctId?: string;
   private queue: Job[] = [];
   private draining = false;
   private inflight = new Set<Promise<void>>();
@@ -30,7 +31,13 @@ export class UmamiTransport {
   }
 
   identify(id: string, data?: Data): void {
+    this.distinctId = id;
     this.enqueue("identify", { id, data });
+  }
+
+  /** Sign-out: later events stop carrying the previous user's id. */
+  reset(): void {
+    this.distinctId = undefined;
   }
 
   async flush(timeoutMs = 2000): Promise<boolean> {
@@ -54,7 +61,8 @@ export class UmamiTransport {
       referrer: c.referrer?.(),
       name: extra.name,
       data: extra.data,
-      id: extra.id,
+      // Like Umami's own tracker: once identified, every later event carries the distinct id.
+      id: extra.id ?? this.distinctId,
     };
     for (const k of Object.keys(payload)) if (payload[k] === undefined) delete payload[k];
     if (this.queue.length >= MAX_QUEUE) this.queue.shift();

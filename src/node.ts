@@ -26,10 +26,11 @@ const t = createTelemetry({
   sentry,
   context: {
     hostname: hostname(),
-    userAgent: `ambient-telemetry-node/${process.version}`,
+    // Umami drops non-browser-looking User-Agents ({"beep":"boop"}), so keep the browser prefix.
+    userAgent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ambient-telemetry-ts/${process.versions.node}`,
     currentUrl: () => "/",
   },
 });
 
-export const { init, track, page, captureError, identify, flush } = t;
+export const { init, track, page, captureError, identify, reset, sessionId, flush } = t;
 export type { TelemetryConfig, ErrorContext } from "./core/types.js";

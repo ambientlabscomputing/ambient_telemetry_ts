@@ -33,7 +33,8 @@ const t = createTelemetry({
       const { width, height } = Dimensions.get("window");
       return `${Math.round(width)}x${Math.round(height)}`;
     },
-    userAgent: `ambient-telemetry-rn/${Platform.OS}/${String(Platform.Version)}`,
+    // Umami drops non-browser-looking User-Agents ({"beep":"boop"}), so keep the browser prefix.
+    userAgent: `Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36 ambient-telemetry-rn/${Platform.OS}/${String(Platform.Version)}`,
     currentUrl: () => currentScreen,
   },
 });
@@ -43,5 +44,5 @@ export const page = (screenName?: string, title?: string) => {
   if (screenName) currentScreen = screenName;
   t.page(screenName, title);
 };
-export const { init, track, captureError, identify, flush } = t;
+export const { init, track, captureError, identify, reset, sessionId, flush } = t;
 export type { TelemetryConfig, ErrorContext } from "./core/types.js";

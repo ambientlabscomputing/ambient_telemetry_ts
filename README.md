@@ -64,7 +64,9 @@ captureError(new Error("payment failed"), { tags: { area: "billing" } });
 | `track(name, data?)` | Umami | `POST {host}/api/send`, `type: "event"` |
 | `page(url?, title?)` | Umami | pageview; RN passes a screen name as `url` |
 | `captureError(err, ctx?)` | GlitchTip | normalizes non-Error values; tags every event with `app` |
-| `identify(id, traits?)` | both | only the id goes to GlitchTip |
+| `identify(id, traits?)` | both | only the id goes to GlitchTip; every later Umami event carries it as the distinct id |
+| `reset()` | both | sign-out: forget the identified user |
+| `sessionId()` | - | per-tab random id, also added to event data (`session_id`) and error tags; send it to your API as `X-Ambient-Session` |
 | `flush(timeoutMs?)` | both | resolves `true` when drained |
 
-Rules: never throw into the host app; calls before `init` are buffered (max 50) and replayed; `enabled: false` is a full no-op; sensitive keys (`password`, `token`, ...) are redacted; non-browser runtimes send an explicit `User-Agent` so Umami doesn't drop them as bots.
+Rules: never throw into the host app; calls before `init` are buffered (max 50) and replayed; `enabled: false` is a full no-op; sensitive keys (`password`, `token`, ...) are redacted; non-browser runtimes send a browser-shaped `User-Agent` (Umami answers `{"beep":"boop"}` with HTTP 200 and drops anything that looks like a bot, including UAs containing `node` or `server`).
