@@ -51,6 +51,7 @@ export class UmamiTransport {
       screen: c.screen,
       url: extra.url ?? c.currentUrl(),
       title: extra.title ?? c.currentTitle?.(),
+      referrer: c.referrer?.(),
       name: extra.name,
       data: extra.data,
       id: extra.id,

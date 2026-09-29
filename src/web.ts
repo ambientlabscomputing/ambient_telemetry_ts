@@ -36,6 +36,7 @@ const t = createTelemetry({
     },
     currentUrl: () => location.pathname + location.search,
     currentTitle: () => document.title,
+    referrer: () => document.referrer || undefined,
   },
 });
 

@@ -32,6 +32,8 @@ export interface UmamiContext {
   /** Default url for page()/track() when none is given. */
   currentUrl(): string;
   currentTitle?(): string | undefined;
+  /** Where the visitor came from; lets Umami attribute traffic sources. */
+  referrer?(): string | undefined;
 }
 
 export interface SentryAdapter {

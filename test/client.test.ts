@@ -17,7 +17,7 @@ function setup() {
   const platform: Platform = {
     sentry,
     fetch: fakeFetch,
-    context: { hostname: "h.test", userAgent: "ua/1", currentUrl: () => "/p", language: "en" },
+    context: { hostname: "h.test", userAgent: "ua/1", currentUrl: () => "/p", language: "en", referrer: () => "https://ref.test/" },
   };
   return { sentry, calls, t: createTelemetry(platform), fakeFetch };
 }
@@ -52,7 +52,7 @@ describe("telemetry client", () => {
     const body = JSON.parse(calls[0]!.init.body as string);
     expect(body).toMatchObject({
       type: "event",
-      payload: { website: "w1", hostname: "h.test", url: "/p", name: "click", data: { password: "[redacted]", n: 1 } },
+      payload: { website: "w1", hostname: "h.test", url: "/p", referrer: "https://ref.test/", name: "click", data: { password: "[redacted]", n: 1 } },
     });
     expect((calls[0]!.init.headers as Record<string, string>)["User-Agent"]).toBe("ua/1");
     expect((calls[1]!.init.headers as Record<string, string>)["x-umami-cache"]).toBe("tok1");
