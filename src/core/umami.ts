@@ -28,17 +28,17 @@ export class UmamiTransport {
     } = {},
   ) {}
 
-  event(name: string | undefined, data: Data | undefined, url?: string): void {
-    this.enqueue("event", { name, data, url });
+  event(name: string | undefined, data: Data | undefined, url?: string, ip?: string): void {
+    this.enqueue("event", { name, data, url, ip });
   }
 
-  pageview(url?: string, title?: string): void {
-    this.enqueue("event", { url, title });
+  pageview(url?: string, title?: string, ip?: string): void {
+    this.enqueue("event", { url, title, ip });
   }
 
-  identify(id: string, data?: Data): void {
+  identify(id: string, data?: Data, ip?: string): void {
     this.distinctId = id;
-    this.enqueue("identify", { id, data });
+    this.enqueue("identify", { id, data, ip });
   }
 
   /** Sign-out: later events stop carrying the previous user's id. */
@@ -69,6 +69,8 @@ export class UmamiTransport {
       data: extra.data,
       // Like Umami's own tracker: once identified, every later event carries the distinct id.
       id: extra.id ?? this.distinctId,
+      // Umami uses this instead of the connection's address (the sender is our server).
+      ip: extra.ip,
     };
     for (const k of Object.keys(payload)) if (payload[k] === undefined) delete payload[k];
     if (this.queue.length >= MAX_QUEUE) this.queue.shift();

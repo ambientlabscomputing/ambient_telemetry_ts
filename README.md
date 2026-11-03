@@ -34,7 +34,7 @@ GlitchTip
 Internal, GitHub-only. It is not published to npm. Add it as a git dependency:
 
 ```bash
-npm install github:ambientlabscomputing/ambient_telemetry_ts#v0.3.2
+npm install github:ambientlabscomputing/ambient_telemetry_ts#v0.4.0
 ```
 
 `prepare` builds `dist/` on install, so pin a tag or commit. The Sentry SDK for your platform (`@sentry/browser`, `@sentry/react-native` or `@sentry/node`) is a peer dependency you install in the app.
@@ -70,6 +70,7 @@ captureError(new Error("payment failed"), { tags: { area: "billing" } });
 | `glitchtip` | `{ dsn, sampleRate?, tracesSampleRate? }`. Omit to disable errors. The DSN key has **no dashes**; the dashed uuid form fails with "Invalid Sentry Dsn". |
 | `enabled` | Kill switch. `false` makes every call a no-op. Use it to keep dev/test/preview silent. |
 | `sanitizeUrl` | Scrubs page URLs, see below. |
+| `captureIp` | Default `false`. Record the end user's public IP; only has an effect in the Node entry, see below. |
 | `beforeTrack`, `beforeSend` | Inspect or drop events / errors (return `null` to drop). |
 | `autoCaptureUnhandled` | Default `true`: Sentry captures uncaught errors and unhandled rejections. |
 | `debug` | Logs swallowed errors to the console. |
@@ -78,6 +79,34 @@ captureError(new Error("payment failed"), { tags: { area: "billing" } });
 
 - `identify(userId, traits?)` once the user is signed in; `reset()` on sign-out. Use your **internal user id, never an email or name**. After `identify`, every later Umami event carries the id as Umami's *distinct id*, and Sentry errors carry it as `user.id`. Events from your backend that send the same id land in the same Umami session.
 - `sessionId()` is a random per-tab id (web entry). It is added to Umami event data as `session_id` and to errors as a `session_id` tag. Send it to your API in an `X-Ambient-Session` header (and allow that header in CORS) so a backend error shares the id with the browser events that led to it. The Python library's Starlette middleware reads that header.
+
+## Knowing where users come from (`captureIp`)
+
+**Web and React Native need nothing.** A browser or phone connects to Umami and GlitchTip directly, and both read the real public IP off that connection: Umami turns it into country / region / city and the anonymous visitor hash, GlitchTip stores it as `user.ip_address` on every error. A browser cannot learn its own public IP without asking a third party, so this library does not try.
+
+**On a server it is different.** If the Node entry runs inside an API that handles other people's requests, the connection Umami and GlitchTip see is your server's, so every event and error would look like it came from you. Turn on `captureIp` and tell the library who the caller is:
+
+```ts
+import { init, track, captureError, withClient } from "ambient-telemetry/node";
+
+init({ ..., captureIp: true });
+
+app.set("trust proxy", 1);                                       // so req.ip is derived safely
+app.use((req, _res, next) => withClient({ ip: req.ip }, next));  // Express; Fastify: req.ip too
+
+track("report_exported");   // carries the caller's IP, also after any await
+```
+
+What it does (nothing at all while `captureIp` is `false` or outside `withClient`):
+
+- **Umami**: sends the IP with every event, pageview and `identify`, so geo and the visitor hash describe the user, not your server. Umami never stores raw IPs, so the address is also added to event data as `client_ip`, which is what you filter on.
+- **GlitchTip**: every error gets a `client_ip` tag (search `client_ip:1.2.3.4`), including errors Sentry captures on its own. A tag is used because GlitchTip overwrites `user.ip_address` with the IP of whoever delivered the event.
+- Only **public** addresses are recorded (private, loopback, CGNAT, multicast, documentation, 6to4 and malformed values are ignored), and `::ffff:1.2.3.4` is stored as `1.2.3.4`. This is the same rule as the Python library, so one user's address is the same string in both.
+- `withClient` uses `AsyncLocalStorage`: it follows `await`s and keeps concurrent requests apart.
+
+Only pass an address you trust. Use your framework's trusted-proxy setting (Express `trust proxy`, Fastify `trustProxy`) rather than reading a client-supplied `X-Forwarded-For` yourself, or anyone can choose the IP you record.
+
+An IP is personal data. It is opt-in per app for that reason: enable it only where you have a reason to and say so in your privacy policy. GlitchTip's project-level "scrub IP addresses" setting only anonymizes `user.ip_address`; it does not touch the `client_ip` tag. If you scrub IPs on purpose, leave `captureIp` off.
 
 ## Keeping URLs safe (`sanitizeUrl`)
 
@@ -117,6 +146,7 @@ Consumers pin the tag (`#vX.Y.Z`) and `prepare` builds `dist/` on install.
 | `reset()` | both | sign-out: forget the identified user |
 | `sessionId()` | - | per-tab random id, also added to event data (`session_id`) and error tags; send it to your API as `X-Ambient-Session` |
 | `flush(timeoutMs?)` | both | resolves `true` when drained |
+| `captureIp` option | both | server platforms only: with the caller's address bound (`withClient` in Node, `bind(ip=)` / the middleware in Python), the public IP is sent to Umami as the payload `ip` plus a `client_ip` event property, and added to errors as a `client_ip` tag. Same normalization in every port (`publicIp`) |
 
 The Python port implements the same calls (`capture_error` instead of `captureError`), plus `bind()` for per-request identity. `sanitizeUrl` exists in both (`sanitize_url` in Python).
 
