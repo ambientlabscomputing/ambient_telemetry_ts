@@ -1,4 +1,5 @@
 import { normalizeError, scrub } from "./errors.js";
+import { publicIp } from "./ip.js";
 import type { Data, ErrorContext, Platform, TelemetryConfig } from "./types.js";
 import { UmamiTransport } from "./umami.js";
 
@@ -24,6 +25,9 @@ export function createTelemetry(platform: Platform): Telemetry {
   let pending: Array<() => void> = [];
 
   const log = (...a: unknown[]) => cfg?.debug && console.debug("[ambient-telemetry]", ...a);
+
+  // Only when `captureIp` is on and the platform knows who the caller is.
+  const clientIp = (): string | undefined => (cfg?.captureIp ? publicIp(platform.client?.()?.ip) : undefined);
 
   // Never throw into the host app. Before init, buffer; after init with enabled=false, no-op.
   const call = (fn: () => void) => {
@@ -67,6 +71,7 @@ export function createTelemetry(platform: Platform): Telemetry {
               autoCaptureUnhandled: config.autoCaptureUnhandled ?? true,
               app: config.app,
               sanitizeUrl: config.sanitizeUrl,
+              clientIp,
             });
           }
           if (config.umami) {
@@ -88,23 +93,27 @@ export function createTelemetry(platform: Platform): Telemetry {
       call(() => {
         let ev: { name: string; data?: Data } | null = { name, data: data && scrub(data) };
         if (cfg?.beforeTrack) ev = cfg.beforeTrack(ev.name, ev.data);
+        if (!ev) return;
         const sid = platform.sessionId?.();
-        if (ev) umami?.event(ev.name, sid ? { session_id: sid, ...ev.data } : ev.data);
+        const ip = clientIp();
+        const base: Data = { ...(sid && { session_id: sid }), ...(ip && { client_ip: ip }) };
+        umami?.event(ev.name, Object.keys(base).length ? { ...base, ...ev.data } : ev.data, undefined, ip);
       });
     },
 
     page(url, title) {
-      call(() => umami?.pageview(url, title));
+      call(() => umami?.pageview(url, title, clientIp()));
     },
 
     captureError(err, ctx = {}) {
       call(() => {
         const sid = platform.sessionId?.();
+        const ip = clientIp();
         let out: { err: Error; ctx: ErrorContext } | null = {
           err: normalizeError(err),
           ctx: {
             ...ctx,
-            tags: { app: cfg!.app, ...(sid ? { session_id: sid } : {}), ...ctx.tags },
+            tags: { app: cfg!.app, ...(sid ? { session_id: sid } : {}), ...(ip ? { client_ip: ip } : {}), ...ctx.tags },
             extra: ctx.extra && scrub(ctx.extra),
           },
         };
@@ -116,7 +125,7 @@ export function createTelemetry(platform: Platform): Telemetry {
     identify(userId, traits) {
       call(() => {
         platform.sentry.setUser({ id: userId });
-        umami?.identify(userId, traits && scrub(traits));
+        umami?.identify(userId, traits && scrub(traits), clientIp());
       });
     },
 
